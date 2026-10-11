@@ -1,0 +1,368 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Maintenance Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: aliceblue;
+            color: darkslategray;
+        }
+
+        header {
+            background-color: midnightblue;
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 30px auto;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card, .panel {
+            background-color: white;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px lightgray;
+        }
+
+        .card {
+            text-align: center;
+        }
+
+        .card h3 {
+            color: slategray;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            font-size: 27px;
+            font-weight: bold;
+            color: royalblue;
+        }
+
+        .panel {
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            color: midnightblue;
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid lightgray;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        button {
+            display: block;
+            margin: 25px auto 0;
+            padding: 12px 30px;
+            background-color: royalblue;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: midnightblue;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 16px;
+            text-align: center;
+            border-radius: 8px;
+            background-color: honeydew;
+            color: darkgreen;
+            font-weight: bold;
+        }
+
+        .warning {
+            background-color: mistyrose;
+            color: darkred;
+        }
+
+        .chart-box {
+            max-width: 450px;
+            margin: auto;
+        }
+
+        .matrix {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        .matrix th, .matrix td {
+            padding: 15px;
+            border: 1px solid lightgray;
+        }
+
+        .matrix th {
+            background-color: midnightblue;
+            color: white;
+        }
+
+        .correct {
+            background-color: honeydew;
+        }
+
+        .incorrect {
+            background-color: mistyrose;
+        }
+
+        footer {
+            background-color: midnightblue;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Predictive Maintenance Dashboard</h1>
+    <p>Industrial Machine Monitoring System</p>
+</header>
+
+<div class="container">
+
+    <div class="cards">
+        <div class="card">
+            <h3>Total Records</h3>
+            <p>{{ total_records }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Machine Failures</h3>
+            <p>{{ failures }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Normal Records</h3>
+            <p>{{ normal }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Failure Percentage</h3>
+            <p>{{ failure_percentage }}%</p>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>ML Model Performance</h2>
+        <div class="cards">
+            <div class="card">
+                <h3>Accuracy</h3>
+                <p>{{ metrics.accuracy }}%</p>
+            </div>
+
+            <div class="card">
+                <h3>Precision</h3>
+                <p>{{ metrics.precision }}%</p>
+            </div>
+
+            <div class="card">
+                <h3>Recall</h3>
+                <p>{{ metrics.recall }}%</p>
+            </div>
+
+            <div class="card">
+                <h3>F1-Score</h3>
+                <p>{{ metrics.f1 }}%</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Machine Status Analysis</h2>
+        <div class="chart-box">
+            <canvas id="machineChart"></canvas>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Feature Importance Analysis</h2>
+        <canvas id="featureChart"></canvas>
+    </div>
+
+    <div class="panel">
+        <h2>Confusion Matrix</h2>
+        <table class="matrix">
+            <tr>
+                <th>Actual / Predicted</th>
+                <th>Normal</th>
+                <th>Failure</th>
+            </tr>
+            <tr>
+                <th>Normal</th>
+                <td class="correct">{{ matrix[0][0] }}</td>
+                <td class="incorrect">{{ matrix[0][1] }}</td>
+            </tr>
+            <tr>
+                <th>Failure</th>
+                <td class="incorrect">{{ matrix[1][0] }}</td>
+                <td class="correct">{{ matrix[1][1] }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="panel">
+        <h2>Predict Machine Condition</h2>
+
+        <form action="/predict" method="POST">
+            <div class="form-grid">
+                <div>
+                    <label>Machine Type</label>
+                    <select name="Type" required>
+                        <option value="L">Low (L)</option>
+                        <option value="M">Medium (M)</option>
+                        <option value="H">High (H)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Air Temperature (K)</label>
+                    <input type="number" step="any"
+                           name="Air temperature [K]"
+                           value="300" required>
+                </div>
+
+                <div>
+                    <label>Process Temperature (K)</label>
+                    <input type="number" step="any"
+                           name="Process temperature [K]"
+                           value="310" required>
+                </div>
+
+                <div>
+                    <label>Rotational Speed (rpm)</label>
+                    <input type="number"
+                           name="Rotational speed [rpm]"
+                           value="1500" required>
+                </div>
+
+                <div>
+                    <label>Torque (Nm)</label>
+                    <input type="number" step="any"
+                           name="Torque [Nm]"
+                           value="40" required>
+                </div>
+
+                <div>
+                    <label>Tool Wear (minutes)</label>
+                    <input type="number"
+                           name="Tool wear [min]"
+                           value="100" min="0" required>
+                </div>
+            </div>
+
+            <button type="submit">Predict Machine Status</button>
+        </form>
+
+        {% if result %}
+        <div class="result {% if 'Warning' in result %}warning{% endif %}">
+            {{ result }}
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<footer>
+    <p>Predictive Maintenance Using Machine Learning</p>
+</footer>
+
+<script>
+    new Chart(document.getElementById('machineChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Normal Machines', 'Machine Failures'],
+            datasets: [{
+                data: [{{ normal }}, {{ failures }}],
+                backgroundColor: ['mediumseagreen', 'tomato']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('featureChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ feature_labels | tojson }},
+            datasets: [{
+                label: 'Feature Importance',
+                data: {{ feature_values | tojson }},
+                backgroundColor: 'steelblue'
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Importance'
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
